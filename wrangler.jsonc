@@ -50,7 +50,7 @@
         {
             "binding": "DB",
             "database_name": "mail2telegram",
-            "database_id": "",
+            "database_id": "d8a0b14f-9476-44c7-aa4c-5a79893c94a6",
             "migrations_dir": "packages/server/migrations"
         }
     ],

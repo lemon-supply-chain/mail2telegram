@@ -8,6 +8,7 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
+        "test": "node --test scripts/email-links.test.mjs",
         "screenshots": "node scripts/screenshots/generate-screenshots.mjs"
     },
     "dependencies": {

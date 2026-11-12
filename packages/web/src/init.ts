@@ -8,10 +8,31 @@ import {
     setDebug,
     themeParams,
     viewport,
+    openLink,
+    openTelegramLink,
 } from '@tma.js/sdk-react';
 
 export interface InitOptions {
     debug: boolean;
+}
+
+export function openExternal(href: string): void {
+    let url: URL;
+    try {
+        url = new URL(href);
+    } catch {
+        return;
+    }
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+        return;
+    }
+
+    const open = url.hostname === 't.me' ? openTelegramLink : openLink;
+    if (open.isAvailable()) {
+        open(url.href);
+    } else {
+        window.open(url.href, '_blank', 'noopener,noreferrer');
+    }
 }
 
 /**

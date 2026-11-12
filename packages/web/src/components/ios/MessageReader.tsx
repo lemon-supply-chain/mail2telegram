@@ -1,13 +1,13 @@
 import type { EmailDetailResponse, SenderRuleAction } from '@mail2telegram/shared';
 import { List, ListItem, Preloader, Segmented, SegmentedButton } from 'konsta/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, fetchAttachmentBlob } from '../../api/client';
 import { useAsync } from '../../hooks/useAsync';
 import { useDarkMode } from '../../hooks/useTheme';
-import { getPlatform } from '../../init';
+import { getPlatform, openExternal } from '../../init';
 import { formatBytes, formatFullDate, initialOf, senderLabel } from '../../lib/format';
 import { haptic } from '../../lib/haptics';
-import { buildEmailDocument } from '../../lib/sanitize';
+import { buildEmailDocument, EMAIL_LINK_MESSAGE_TYPE } from '../../lib/sanitize';
 import {
     AttachmentIcon,
     CheckIcon,
@@ -37,6 +37,24 @@ export interface MessageReaderProps {
 /** iOS Mail message view: header, body, attachments and a bottom action bar. */
 export function MessageReader({ emailId, onChanged, onDeleted, onBack }: MessageReaderProps) {
     const dark = useDarkMode();
+    const bodyFrame = useRef<HTMLIFrameElement>(null);
+
+    useEffect(() => {
+        const onMessage = (event: MessageEvent) => {
+            // Sandboxed srcDoc frames have origin "null", so authenticate by
+            // window identity rather than trusting the message's origin.
+            if (!bodyFrame.current || event.source !== bodyFrame.current.contentWindow) {
+                return;
+            }
+            const message = event.data;
+            if (!message || message.type !== EMAIL_LINK_MESSAGE_TYPE || typeof message.href !== 'string') {
+                return;
+            }
+            openExternal(message.href);
+        };
+        window.addEventListener('message', onMessage);
+        return () => window.removeEventListener('message', onMessage);
+    }, []);
     const { data, loading, error, reload, setData } = useAsync<EmailDetailResponse>(
         () => api.getEmail(emailId),
         [emailId],
@@ -231,9 +249,10 @@ export function MessageReader({ emailId, onChanged, onDeleted, onBack }: Message
 
                 {preferHtml && bodyDocument ? (
                     <iframe
+                        ref={bodyFrame}
                         title="Message content"
                         className="reader__frame"
-                        sandbox="allow-popups allow-popups-to-escape-sandbox"
+                        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
                         srcDoc={bodyDocument}
                     />
                 ) : (
